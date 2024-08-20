@@ -1,0 +1,69 @@
+run-name: Release  appbundle  Signing
+on:
+  push:
+    branches:
+      - 'dev'
+permissions:
+  contents: write
+jobs:
+  release-signing-build:
+    #if: contains(github.event.head_commit.message, 'appbundle') || contains(github.event.head_commit.message, 'all')
+    name: Release Signing Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v3
+      - name: Extract Version Code and Version Number
+        id: extract_version
+        run: |
+          # Extract versionCode and versionNumber from commit message
+          # versionCode=$(echo "${{ github.event.head_commit.message }}" | grep -oP '(?<=versionCode=)\d+')
+          # versionNumber=$(echo "${{ github.event.head_commit.message }}" | grep -oP '(?<=versionNumber=)[^\s]+')
+          echo "VERSION_CODE=1" >> $GITHUB_ENV
+          echo "VERSION_NUMBER=1.0.0" >> $GITHUB_ENV
+      - name: Update Version in pubspec.yaml
+        run: |
+          # Replace the version line with the extracted VERSION_NUMBER and VERSION_CODE
+          sed -i "s/^version:.*/version: ${VERSION_NUMBER}+${VERSION_CODE}/" pubspec.yaml
+          grep version: -ri pubspec.yaml
+      - name: Install GTK and Ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev ninja-build
+
+      - uses: gradle/gradle-build-action@v2
+      - uses: subosito/flutter-action@v1
+        with:
+          channel: stable
+          flutter-version: 3.24
+      - name: Setup JDK 19
+        uses: actions/setup-java@v3
+        with:
+          java-version: '19'
+          distribution: 'temurin'
+          cache: gradle
+
+     # - name: Setup Android SDK
+     #   uses: android-actions/setup-android@v3
+
+
+      - name: Sign and Build Release Bundle
+        run: |
+          flutter clean
+          flutter pub get
+          flutter build appbundle --release
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true 
+          dotnet: false
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: true
+      - name: Upload artefato
+        uses: actions/upload-artifact@v2
+        with:
+          name: appbundle
+          path: build/app/outputs/bundle/release/app-release.aab
