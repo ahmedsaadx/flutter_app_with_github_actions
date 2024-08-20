@@ -2,12 +2,12 @@ run-name: Release  appbundle  Signing
 on:
   push:
     branches:
-      - 'dev'
+      - 'main'
 permissions:
   contents: write
 jobs:
   release-signing-build:
-    #if: contains(github.event.head_commit.message, 'appbundle') || contains(github.event.head_commit.message, 'all')
+    if: contains(github.event.head_commit.message, 'appbundle') || contains(github.event.head_commit.message, 'all')
     name: Release Signing Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -17,15 +17,28 @@ jobs:
         id: extract_version
         run: |
           # Extract versionCode and versionNumber from commit message
-          # versionCode=$(echo "${{ github.event.head_commit.message }}" | grep -oP '(?<=versionCode=)\d+')
-          # versionNumber=$(echo "${{ github.event.head_commit.message }}" | grep -oP '(?<=versionNumber=)[^\s]+')
-          echo "VERSION_CODE=1" >> $GITHUB_ENV
-          echo "VERSION_NUMBER=1.0.0" >> $GITHUB_ENV
+          versionCode=$(echo "${{ github.event.head_commit.message }}" | grep -oP '(?<=versionCode=)\d+')
+          versionNumber=$(echo "${{ github.event.head_commit.message }}" | grep -oP '(?<=versionNumber=)[^\s]+')
+          echo "VERSION_CODE=$versionCode" >> $GITHUB_ENV
+          echo "VERSION_NUMBER=$versionNumber" >> $GITHUB_ENV
       - name: Update Version in pubspec.yaml
         run: |
           # Replace the version line with the extracted VERSION_NUMBER and VERSION_CODE
           sed -i "s/^version:.*/version: ${VERSION_NUMBER}+${VERSION_CODE}/" pubspec.yaml
           grep version: -ri pubspec.yaml
+      - name: Configure Keystore
+        run: |
+          echo "$STOREFILE" | base64 --decode > android/app/upload-keystore.jks
+          echo "storeFile=upload-keystore.jks" >> android/app/key.properties
+          echo "keyAlias=$KEYALIAS" >> android/app/key.properties
+          echo "storePassword=$STOREPASSWORD" >> android/app/key.properties
+          echo "keyPassword=$KEYPASSWORD" >> android/app/key.properties
+        env:
+          STOREFILE: ${{ secrets.STOREFILE }}
+          KEYALIAS: ${{ secrets.KEYALIAS }}
+          KEYPASSWORD: ${{ secrets.KEYPASSWORD }}
+          STOREPASSWORD: ${{ secrets.STOREPASSWORD }}
+
       - name: Install GTK and Ninja
         run: |
           sudo apt-get update
@@ -52,16 +65,16 @@ jobs:
           flutter clean
           flutter pub get
           flutter build appbundle --release
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true 
-          dotnet: false
-          haskell: true
-          large-packages: false
-          docker-images: false
-          swap-storage: true
+      # - name: Free Disk Space (Ubuntu)
+      #   uses: jlumbroso/free-disk-space@main
+      #   with:
+      #     tool-cache: true
+      #     android: true 
+      #     dotnet: false
+      #     haskell: true
+      #     large-packages: false
+      #     docker-images: false
+      #     swap-storage: true
       - name: Upload artefato
         uses: actions/upload-artifact@v2
         with:
