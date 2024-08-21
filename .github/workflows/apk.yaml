@@ -2,7 +2,7 @@ run-name: Release  apk  Signing
 on:
   push:
     branches:
-      - 'dev'
+      - 'main'
 permissions:
   contents: write
 jobs:
