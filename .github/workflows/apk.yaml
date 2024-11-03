@@ -10,6 +10,7 @@ jobs:
     if: contains(github.event.head_commit.message, 'apk') || contains(github.event.head_commit.message, 'all')
     name: Release Signing Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v3
       - name: Extract Version Code and Version Number
@@ -25,6 +26,18 @@ jobs:
           # Replace the version line with the extracted VERSION_NUMBER and VERSION_CODE
           sed -i "s/^version:.*/version: ${VERSION_NUMBER}+${VERSION_CODE}/" pubspec.yaml
           grep version: -ri pubspec.yaml
+      - name: Configure Keystore
+        run: |
+           echo "$STOREFILE" | base64 --decode > android/app/upload-keystore.jks
+           echo "storeFile=upload-keystore.jks" >> android/app/key.properties
+           echo "keyAlias=$KEYALIAS" >> android/app/key.properties
+           echo "storePassword=$STOREPASSWORD" >> android/app/key.properties
+           echo "keyPassword=$KEYPASSWORD" >> android/app/key.properties
+        env:
+           STOREFILE: ${{ secrets.STOREFILE }}
+           KEYALIAS: ${{ secrets.KEYALIAS }}
+           KEYPASSWORD: ${{ secrets.KEYPASSWORD }}
+           STOREPASSWORD: ${{ secrets.STOREPASSWORD }}
       - name: Install GTK and Ninja
         run: |
           sudo apt-get update
@@ -49,7 +62,6 @@ jobs:
 
       - name: Sign and Build Release Bundle
         run: |
-          flutter clean
           flutter pub get
           flutter build apk --release
       - name: Free Disk Space (Ubuntu)

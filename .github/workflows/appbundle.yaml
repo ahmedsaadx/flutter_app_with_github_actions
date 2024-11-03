@@ -67,16 +67,16 @@ jobs:
           flutter clean
           flutter pub get
           flutter build appbundle --release
-      # - name: Free Disk Space (Ubuntu)
-      #   uses: jlumbroso/free-disk-space@main
-      #   with:
-      #     tool-cache: true
-      #     android: true 
-      #     dotnet: false
-      #     haskell: true
-      #     large-packages: false
-      #     docker-images: false
-      #     swap-storage: true
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true 
+          dotnet: false
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: true
       - name: Upload artefato
         uses: actions/upload-artifact@v4
         with:
