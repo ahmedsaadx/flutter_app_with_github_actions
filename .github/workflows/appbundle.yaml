@@ -33,7 +33,7 @@ jobs:
           echo "keyAlias=$KEYALIAS" >> android/app/key.properties
           echo "storePassword=$STOREPASSWORD" >> android/app/key.properties
           echo "keyPassword=$KEYPASSWORD" >> android/app/key.properties
-          echo "GOOGLE_JSON" >> android/app/google-services.json
+          echo "GOOGLE_JSON" | base64 --decode > android/app/google-services.json
         env:
           STOREFILE: ${{ secrets.STOREFILE }}
           KEYALIAS: ${{ secrets.KEYALIAS }}
